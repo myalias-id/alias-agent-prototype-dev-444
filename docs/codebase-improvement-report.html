@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alias Agent Prototype – Codebase Improvement Report</title>
+  <style>
+    :root {
+      --accent:   #4f46e5;
+      --accent2:  #7c3aed;
+      --danger:   #dc2626;
+      --warning:  #d97706;
+      --ok:       #16a34a;
+      --info:     #0369a1;
+      --bg:       #f8fafc;
+      --card:     #ffffff;
+      --border:   #e2e8f0;
+      --text:     #1e293b;
+      --muted:    #64748b;
+      --code-bg:  #f1f5f9;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    /* ── Cover ──────────────────────────────────── */
+    .cover {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 100%);
+      color: #fff;
+      padding: 80px 60px 60px;
+      min-height: 280px;
+      page-break-after: always;
+    }
+    .cover h1 { font-size: 34px; font-weight: 700; margin-bottom: 10px; }
+    .cover .subtitle { font-size: 16px; opacity: 0.8; margin-bottom: 32px; }
+    .cover .meta { display: flex; gap: 40px; flex-wrap: wrap; }
+    .cover .meta-item label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; display: block; }
+    .cover .meta-item span { font-size: 13px; font-weight: 600; }
+
+    /* ── Body layout ────────────────────────────── */
+    .content { max-width: 900px; margin: 0 auto; padding: 40px 40px 60px; }
+
+    /* ── Executive summary ──────────────────────── */
+    .exec-summary {
+      background: linear-gradient(135deg, #ede9fe, #dbeafe);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin-bottom: 36px;
+    }
+    .exec-summary h2 { color: var(--accent); margin-bottom: 10px; font-size: 16px; }
+    .exec-summary p { color: #374151; margin-bottom: 8px; }
+
+    /* ── Stat badges ────────────────────────────── */
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; }
+    .stat-card {
+      flex: 1 1 120px;
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-align: center;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    .stat-card .num { font-size: 28px; font-weight: 700; }
+    .stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .stat-card.red   .num { color: var(--danger); }
+    .stat-card.amber .num { color: var(--warning); }
+    .stat-card.blue  .num { color: var(--info); }
+    .stat-card.green .num { color: var(--ok); }
+
+    /* ── Section headings ───────────────────────── */
+    h2.section {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+      margin: 40px 0 20px;
+    }
+    h3.finding {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 28px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── Severity pills ─────────────────────────── */
+    .pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 2px 10px;
+      border-radius: 999px;
+    }
+    .pill.critical { background: #fee2e2; color: #991b1b; }
+    .pill.high     { background: #fef3c7; color: #92400e; }
+    .pill.medium   { background: #dbeafe; color: #1e3a8a; }
+    .pill.low      { background: #d1fae5; color: #065f46; }
+    .pill.info     { background: #f0fdf4; color: #15803d; }
+
+    /* ── Finding cards ──────────────────────────── */
+    .finding-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+    }
+    .finding-card .desc { color: #374151; margin-bottom: 10px; }
+    .finding-card .files { color: var(--muted); font-size: 11px; margin-bottom: 10px; }
+    .finding-card .files strong { color: var(--text); }
+
+    /* ── Code blocks ────────────────────────────── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 11.5px;
+      overflow-x: auto;
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+    code { font-family: 'Fira Code', 'Consolas', monospace; font-size: 11.5px; }
+    .inline-code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+    }
+
+    /* ── Recommendation blocks ──────────────────── */
+    .recommendation {
+      background: #f0fdf4;
+      border-left: 3px solid var(--ok);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #166534;
+    }
+    .recommendation strong { display: block; margin-bottom: 4px; }
+
+    /* ── TOC ────────────────────────────────────── */
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 36px;
+    }
+    .toc h2 { font-size: 15px; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin: 4px 0; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* ── Tables ─────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+    th { background: var(--code-bg); padding: 8px 12px; text-align: left; font-weight: 600; border: 1px solid var(--border); }
+    td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    /* ── Print ──────────────────────────────────── */
+    @media print {
+      body { background: #fff; }
+      .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .finding-card, .exec-summary, .stat-card { break-inside: avoid; }
+      h2.section { break-before: auto; }
+      pre { white-space: pre-wrap; word-break: break-all; }
+    }
+
+    .page-break { page-break-before: always; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ COVER ═══════════════════════════════════════════ -->
+<div class="cover">
+  <h1>Codebase Improvement Report</h1>
+  <div class="subtitle">alias-agent-prototype — Deep Technical Analysis</div>
+  <div class="meta">
+    <div class="meta-item"><label>Repository</label><span>alias-agent-prototype</span></div>
+    <div class="meta-item"><label>Branch</label><span>fix/chat-code-block-and-voice-button</span></div>
+    <div class="meta-item"><label>Stack</label><span>Next.js 14 · TypeScript · React · Three.js</span></div>
+    <div class="meta-item"><label>Report Date</label><span>14 May 2026</span></div>
+    <div class="meta-item"><label>Files Analysed</label><span>60+</span></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ CONTENT ═════════════════════════════════════════ -->
+<div class="content">
+
+  <!-- Executive Summary -->
+  <div class="exec-summary">
+    <h2>Executive Summary</h2>
+    <p>
+      This report covers a full inspection of the <strong>alias-agent-prototype</strong> Next.js application — a real-time AI avatar chat system with VRM 3D models, WebSocket streaming, audio processing, and blockchain integrations.
+      Every source file was examined: API routes, Zustand stores, React components, hooks, utility libraries, and configuration files.
+    </p>
+    <p>
+      The codebase is well-architected overall, with good use of TypeScript, Zustand, and modular separation.
+      However, <strong>3 critical security vulnerabilities</strong> were identified (including admin secrets leaking to the browser),
+      along with pervasive code duplication, missing tests, inconsistent API response shapes, memory leaks,
+      and a number of React best-practice violations.
+    </p>
+    <p>
+      The findings are grouped into 12 categories, ordered by severity. Concrete fix examples are provided for the most impactful issues.
+    </p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card red"><div class="num">3</div><div class="label">Critical</div></div>
+    <div class="stat-card amber"><div class="num">8</div><div class="label">High</div></div>
+    <div class="stat-card blue"><div class="num">12</div><div class="label">Medium</div></div>
+    <div class="stat-card green"><div class="num">9</div><div class="label">Low / Info</div></div>
+    <div class="stat-card blue"><div class="num">0</div><div class="label">Tests Found</div></div>
+    <div class="stat-card amber"><div class="num">5+</div><div class="label">Duplicated Modules</div></div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#sec-security">Security Vulnerabilities</a></li>
+      <li><a href="#sec-duplication">Code Duplication</a></li>
+      <li><a href="#sec-typescript">TypeScript Strictness</a></li>
+      <li><a href="#sec-error">Error Handling Inconsistencies</a></li>
+      <li><a href="#sec-performance">Performance Issues</a></li>
+      <li><a href="#sec-memory">Memory Leaks</a></li>
+      <li><a href="#sec-architecture">Architecture &amp; Design</a></li>
+      <li><a href="#sec-react">React Best Practices</a></li>
+      <li><a href="#sec-api">API Design Consistency</a></li>
+      <li><a href="#sec-deps">Dependency Hygiene</a></li>
+      <li><a href="#sec-deadcode">Dead &amp; Commented Code</a></li>
+      <li><a href="#sec-testing">Testing</a></li>
+    </ol>
+  </div>
+
+  <!-- ══════════════════ 1. SECURITY ══════════════════ -->
+  <h2 class="section" id="sec-security">1. Security Vulnerabilities</h2>
+
+  <h3 class="finding"><span class="pill critical">Critical</span> Admin Secret Exposed in Client-Side Code</h3>
+  <div class="finding-card">
+    <div class="desc">
+      Three client-side files reference <code class="inline-code">process.env.BACKEND_API_ADMIN_SECRET</code> directly in <code>fetch()</code> Authorization headers.
+      In Next.js, only <code>NEXT_PUBLIC_*</code> environment variables are embedded into the browser bundle.
+      All others are <code>undefined</code> at runtime — meaning these calls silently send <code>Authorization: Bearer undefined</code>.
+      If anyone ever adds the <code>NEXT_PUBLIC_</code> prefix to work around this (a common mistake), the admin secret would be
+      publicly visible in every browser's network tab.
+    </div>
+    <div class="files"><strong>Files:</strong>
+      src/hooks/useVrmInitializer.ts ·
+      src/hooks/useBackgroundInitializer.ts ·
+      src/components/vrm/VrmManager.ts
+    </div>
+    <pre>// ❌ Current — client component using a server-only secret
+const response = await fetch('/api/agent/ms-vrm', {
+  headers: {
+    Authorization: `Bearer ${process.env.BACKEND_API_ADMIN_SECRET}`, // undefined in browser
+  },
+});</pre>
+    <div class="recommendation">
+      <strong>Fix:</strong>
+      The client should call the Next.js API route without any Authorization header.
+      The API route (running server-side) then attaches the admin secret before proxying to the backend.
+      This is already done correctly in the API routes — the client-side hooks should simply drop the Authorization header entirely.
+      <pre>// ✅ Fixed — client calls its own API route without a secret
+const response = await fetch('/api/agent/ms-vrm');  // No auth header needed</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill critical">Critical</span> Hardcoded Empty Token in getMetadata.ts</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>getMetadata</code> server function calls the backend with a literal empty string inside the Bearer token:
+      <code>Authorization: `Bearer ''`</code>.
+      This is a hardcoded malformed credential. If the backend ever starts validating this header, it will silently break server-side metadata generation (SSR/SEO).
+      More importantly, it signals that authentication intent here is unclear and was patched over.
+    </div>
+    <div class="files"><strong>File:</strong> src/lib/getMetadata.ts · Line 16</div>
+    <pre>// ❌ Current
+Authorization: `Bearer ''`,</pre>
+    <div class="recommendation">
+      <strong>Fix:</strong> Either use the proper server-side secret or remove the Authorization header if this endpoint is public.
+      <pre>// ✅ Option A: use the actual secret (server-side only — safe)
+Authorization: `Bearer ${process.env.BACKEND_API_ADMIN_SECRET}`,
+
+// ✅ Option B: if the /agent/:id endpoint is public, omit the header
+// (no Authorization header)</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill critical">Critical</span> Overly Permissive CORS &amp; Framing Headers</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The Next.js config sets <code>Access-Control-Allow-Origin: *</code> for <em>all</em> API routes and
+      <code>X-Frame-Options: ALLOWALL</code> on <em>all</em> paths globally. This allows any website to:
+      <ul style="margin:8px 0 8px 20px;">
+        <li>Embed the app in an iframe (clickjacking attack surface)</li>
+        <li>Make cross-origin requests to all API endpoints (CSRF risk without additional token-based protections)</li>
+      </ul>
+      The embed use-case is valid, but these headers should be scoped to the <code>/embed</code> path only.
+    </div>
+    <div class="files"><strong>File:</strong> next.config.js · headers() function</div>
+    <pre>// ❌ Current — applied globally
+{
+  source: '/:path*',
+  headers: [{ key: 'X-Frame-Options', value: 'ALLOWALL' }],
+},</pre>
+    <div class="recommendation">
+      <strong>Fix:</strong> Restrict permissive headers to the <code>/embed</code> route only.
+      For API routes, specify the allowed origins explicitly or use CSRF tokens.
+      <pre>// ✅ Fixed — only the embed page is frameable
+{
+  source: '/:path*',
+  headers: [{ key: 'X-Frame-Options', value: 'SAMEORIGIN' }],
+},
+{
+  source: '/embed/:path*',
+  headers: [{ key: 'X-Frame-Options', value: 'ALLOWALL' }],
+},</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill high">High</span> Google Analytics ID Hardcoded in layout.tsx</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The GA measurement ID <code>G-QDK3X6G6EF</code> is hardcoded directly in <code>RootLayout</code>.
+      Hardcoding analytics IDs prevents easy rotation, environment-specific tracking (dev vs prod),
+      and complicates open-sourcing the project.
+    </div>
+    <div class="files"><strong>File:</strong> src/app/layout.tsx · Line 68</div>
+    <pre>// ❌ Current
+&lt;ConditionalGoogleAnalytics gaId={'G-QDK3X6G6EF'} /&gt;</pre>
+    <div class="recommendation">
+      <strong>Fix:</strong> Move to an environment variable.
+      <pre>// ✅ Fixed
+&lt;ConditionalGoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID ?? ''} /&gt;</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill high">High</span> Missing Input Validation in chat-os/generate Route</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>/api/chat-os/generate</code> endpoint accepts an array of messages and forwards them
+      directly to OpenRouter without validating: the number of messages, the size of each message,
+      or the content type. A malicious actor could send an enormous payload (thousands of messages,
+      megabytes of text) to exhaust API credits or cause downstream rate-limit bans.
+    </div>
+    <div class="files"><strong>File:</strong> src/app/api/chat-os/generate/route.ts</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Add message count and per-message length limits.
+      <pre>const MAX_MESSAGES = 50;
+const MAX_MESSAGE_CHARS = 4000;
+
+if (messages.length > MAX_MESSAGES) {
+  return errorResponse('Too many messages', 400);
+}
+const valid = messages.every(
+  (m: unknown) =>
+    typeof m === 'object' &&
+    m !== null &&
+    typeof (m as { content: unknown }).content === 'string' &&
+    (m as { content: string }).content.length &lt;= MAX_MESSAGE_CHARS
+);
+if (!valid) return errorResponse('Invalid message format or size', 400);</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════ 2. DUPLICATION ══════════════════ -->
+  <h2 class="section page-break" id="sec-duplication">2. Code Duplication</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> AgentManager Component Duplicates useAgentInitializer Hook</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>src/components/agent/AgentManager.ts</code> and <code>src/hooks/useAgentInitializer.ts</code>
+      contain <strong>line-for-line identical logic</strong>: both read <code>NEXT_PUBLIC_AGENT_ID</code>,
+      parse the <code>agentId</code> query param, call <code>fetchAgentById</code>, set VRM, and set background.
+      <code>context-wrapper.tsx</code> uses the hook; <code>AgentManager</code> is also imported (used elsewhere).
+      This creates a maintenance hazard — any change must be made in two places.
+    </div>
+    <div class="files"><strong>Files:</strong> src/components/agent/AgentManager.ts · src/hooks/useAgentInitializer.ts</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Delete <code>AgentManager.ts</code> and have all consumers use <code>useAgentInitializer</code>.
+      The hook is already the canonical version used by <code>ContextWrapper</code>.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill high">High</span> useVrmInitializer Duplicates VrmManager</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The same duplication exists for VRM loading. <code>src/hooks/useVrmInitializer.ts</code> and
+      <code>src/components/vrm/VrmManager.ts</code> share almost identical <code>fetchVrmsAndAnimations</code> logic,
+      including the same fallback local VRM object (Lucy).
+      Additionally, both files define the <code>getVRMBlendShapeType</code> / <code>GetVRMBlendShapeType</code> function
+      (identical algorithm, different capitalisation).
+    </div>
+    <div class="files"><strong>Files:</strong> src/hooks/useVrmInitializer.ts · src/components/vrm/VrmManager.ts</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Consolidate into the hook. Remove <code>VrmManager.ts</code> or reduce it to a thin wrapper.
+      Extract <code>getVRMBlendShapeType</code> to a shared utility (e.g., <code>src/lib/utils/vrm-utils.ts</code>).
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Utility Functions Duplicated Across Modules</h3>
+  <div class="finding-card">
+    <div class="desc">
+      Three utility functions are independently re-implemented in both <code>src/lib/utils.ts</code>
+      and <code>src/lib/utils/chat-utils.ts</code>:
+    </div>
+    <table>
+      <tr><th>Function</th><th>utils.ts</th><th>chat-utils.ts</th></tr>
+      <tr><td><code>debounce</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td><code>delay</code></td><td>✓</td><td>✓</td></tr>
+      <tr><td><code>randomElement</code></td><td>✓</td><td>✓</td></tr>
+    </table>
+    <div class="recommendation">
+      <strong>Fix:</strong> Import from the canonical <code>src/lib/utils.ts</code> in <code>chat-utils.ts</code> and remove the local copies.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> JSON_HEADERS Constant Duplicated in API Routes</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The constant <code>const JSON_HEADERS = {'{ \'Content-Type\': \'application/json\' }'}</code>
+      is independently declared in at least 3 API route files:
+      <code>ms-agent/route.ts</code>, <code>places/route.ts</code>, and <code>transcribe/route.ts</code>.
+    </div>
+    <div class="files"><strong>Files:</strong> Multiple API route files</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Export <code>JSON_HEADERS</code> from <code>src/lib/api-response.ts</code> and import it everywhere.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 3. TYPESCRIPT ══════════════════ -->
+  <h2 class="section" id="sec-typescript">3. TypeScript Strictness</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> no-unused-vars Rule Disabled Globally</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The ESLint config sets <code>'@typescript-eslint/no-unused-vars': 'off'</code>.
+      This means unused variables, dead imports, and stale function arguments are silently ignored across the entire codebase,
+      making it hard to identify dead code and increasing bundle size.
+    </div>
+    <div class="files"><strong>File:</strong> .eslintrc.js · Line 46</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Enable the rule with practical options to reduce noise.
+      <pre>// In .eslintrc.js
+'@typescript-eslint/no-unused-vars': ['warn', {
+  argsIgnorePattern: '^_',
+  varsIgnorePattern: '^_',
+}],</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill high">High</span> Pervasive use of <code>any</code> with ESLint Suppression</h3>
+  <div class="finding-card">
+    <div class="desc">
+      Multiple files disable the <code>@typescript-eslint/no-explicit-any</code> rule at the file level
+      via <code>/* eslint-disable @typescript-eslint/no-explicit-any */</code>.
+      Using <code>any</code> defeats the purpose of TypeScript and can mask real type errors.
+    </div>
+    <div class="files"><strong>Files:</strong>
+      src/components/vrm/Model.ts ·
+      src/components/vrm/VrmManager.ts ·
+      src/hooks/useAudioRecording.ts ·
+      src/components/common/audio-visualizer-6.tsx ·
+      src/lib/utils/chat-utils.ts
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Replace <code>any</code> with proper types. For browser vendor APIs, use the existing
+      <code>src/types/browser.d.ts</code> or specific narrowing. For <code>RecordRTC</code>, use its published types or
+      create a minimal interface. Remove the top-level eslint-disable comments and suppress inline only where
+      genuinely unavoidable.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Agent Store Initialised with <code>null</code> for Non-Nullable Type</h3>
+  <div class="finding-card">
+    <div class="desc">
+      In <code>useAgentStore.ts</code>, the store is initialised with <code>agent: null</code>,
+      but the interface declares <code>agent: IAgent</code> (not <code>IAgent | null</code>).
+      This type mismatch is silently ignored and can cause unexpected <code>null</code>-access runtime errors throughout the app.
+    </div>
+    <div class="files"><strong>File:</strong> src/store/useAgentStore.ts · Lines 90, 100</div>
+    <pre>// ❌ Current interface vs initialisation mismatch
+interface AgentStoreState {
+  agent: IAgent;            // non-nullable
+  ...
+}
+create&lt;AgentStoreState&gt;(... {
+  agent: null,              // null!
+  ...
+})</pre>
+    <div class="recommendation">
+      <strong>Fix:</strong> Change the interface to <code>agent: IAgent | null</code> and add null checks at call sites.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 4. ERROR HANDLING ══════════════════ -->
+  <h2 class="section" id="sec-error">4. Error Handling Inconsistencies</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> Inconsistent API Response Shapes</h3>
+  <div class="finding-card">
+    <div class="desc">
+      API routes return different success/error shapes with no common contract:
+    </div>
+    <table>
+      <tr><th>Route</th><th>Success Shape</th><th>Error Shape</th></tr>
+      <tr><td>ms-agent GET</td><td><code>{"{ status: 'success', data }"}</code></td><td><code>{"{ status: 'fail', message }"}</code></td></tr>
+      <tr><td>transcribe POST</td><td><code>{"{ status: 'ok', text }"}</code></td><td><code>{"{ status: 'fail', message }"}</code></td></tr>
+      <tr><td>chat-os/generate</td><td><code>{"{ success: true, choices }"}</code></td><td><code>{"{ error, details }"}</code></td></tr>
+      <tr><td>places GET</td><td><code>{"{ status: 'success', data }"}</code></td><td><code>{"{ status: 'fail', message }"}</code></td></tr>
+      <tr><td>ms-vrm GET</td><td><code>{"{ status: 'success', data }"}</code></td><td><code>{"{ error }"}</code></td></tr>
+    </table>
+    <div class="recommendation">
+      <strong>Fix:</strong> Standardise on a single response envelope. The <code>errorResponse</code> /
+      <code>successResponse</code> helpers in <code>src/lib/api-response.ts</code> are a good start — use them everywhere.
+      Update <code>transcribe</code> to use <code>status: 'success'</code> and <code>chat-os/generate</code> to match
+      the same envelope.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Mixing axios and fetch in the Same File</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>ms-agent/route.ts</code> uses the native <code>fetch</code> API for the <code>GET</code> handler
+      and <code>axios</code> for the <code>POST</code> handler — in the same file with no particular reason.
+      This adds bundle weight (axios is ~14 KB gzipped) and inconsistency.
+    </div>
+    <div class="files"><strong>File:</strong> src/app/api/agent/ms-agent/route.ts</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Standardise on native <code>fetch</code> for all Next.js API routes (edge runtime already requires it).
+      Remove the <code>axios</code> import from this file.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Silent Failure Pattern in fetchAgentById</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>fetchAgentById</code> in the agent store catches all errors and returns <code>undefined</code> silently.
+      Callers that <code>await</code> it have no way to distinguish between "agent loaded", "agent not found",
+      and "network error", leading to subtle UI bugs where a loading spinner spins forever.
+    </div>
+    <div class="files"><strong>File:</strong> src/store/useAgentStore.ts · fetchAgentById</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Return a typed result or throw, and set an error state in the store.
+      The <code>setIsLoading(false)</code> call should be moved to a <code>finally</code> block so it always executes.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 5. PERFORMANCE ══════════════════ -->
+  <h2 class="section page-break" id="sec-performance">5. Performance Issues</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> WebSocket Store Persists Non-Serializable Objects</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>useSocketChatStore</code> is wrapped with Zustand's <code>persist</code> middleware.
+      The store state contains <code>socket: WebSocket | null</code>, <code>visualizerAnalyser: AnalyserNode | null</code>,
+      and <code>visualizerGainNode: GainNode | null</code> — all non-serializable browser objects.
+      Attempting to serialize these to localStorage will silently fail and may corrupt persisted state
+      or throw hard-to-diagnose errors.
+    </div>
+    <div class="files"><strong>File:</strong> src/store/useSocketChatStore.ts · persist() wrapper</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Use Zustand's <code>partialize</code> option to only persist serializable fields.
+      <pre>persist(
+  (set, get) => ({ ... }),
+  {
+    name: 'socket-chat-store',
+    partialize: (state) => ({
+      userId:    state.userId,
+      sessionId: state.sessionId,
+      volume:    state.volume,
+      messages:  state.messages,
+    }),
+  }
+)</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill high">High</span> Unbounded Model Cache in VrmComponent</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>modelCacheSignal</code> in <code>VrmComponent.tsx</code> is a module-level Preact signal that
+      caches loaded VRM models by URL with no eviction policy. Each loaded VRM can be 20–100 MB in memory.
+      Over a long session with multiple agents, this will exhaust the browser's memory budget and cause
+      page crashes, especially on mobile.
+    </div>
+    <div class="files"><strong>File:</strong> src/components/vrm/VrmComponent.tsx · modelCacheSignal</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Implement an LRU cache with a maximum of 2–3 entries (enough for the current + previous VRM).
+      Dispose of evicted VRM resources using the existing <code>disposeOfModel</code> utility in
+      <code>src/lib/utils/garbage-collection.ts</code>.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Unthrottled Resize Listener in agent-chat.tsx</h3>
+  <div class="finding-card">
+    <div class="desc">
+      A <code>useLayoutEffect</code> in <code>agent-chat.tsx</code> attaches a <code>resize</code> event
+      listener that calls <code>setContainerWidth</code> synchronously on every resize event.
+      Without debouncing, this fires hundreds of times per second during a resize drag,
+      triggering a full component re-render each time.
+    </div>
+    <div class="files"><strong>File:</strong> src/components/agent/agent-chat.tsx · useLayoutEffect</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Debounce the resize handler or use the existing <code>debounce</code> utility from
+      <code>src/lib/utils.ts</code>. Alternatively, replace with a <code>ResizeObserver</code> (already a browser API)
+      which is more efficient than window resize events.
+      <pre>const updateWidth = debounce(() => {
+  if (containerRef.current) {
+    setContainerWidth(containerRef.current.offsetWidth);
+  }
+}, 100);
+window.addEventListener('resize', updateWidth);</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Production console.log Statements in Hot Paths</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>Model.ts</code> has multiple <code>console.log</code> calls inside animation transition logic
+      that runs every animation frame (via <code>requestAnimationFrame</code>). Logging on every frame
+      causes significant garbage collection pressure and can noticeably slow down rendering.
+      Examples: <code>[Model] Starting gradual transition</code>, <code>[Model] Gradual transition completed</code>.
+    </div>
+    <div class="files"><strong>File:</strong> src/components/vrm/Model.ts · startGradualTransition</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Remove or gate all animation-path logs behind a debug flag:
+      <pre>const DEBUG = process.env.NODE_ENV === 'development' &amp;&amp; process.env.NEXT_PUBLIC_DEBUG_ANIM;
+if (DEBUG) console.log('[Model] Starting gradual transition:', ...);</pre>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Double-Fetch Risk: useVrmInitializer + VrmManager Both Active</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>ContextWrapper</code> calls <code>useVrmInitializer</code> (which fetches VRMs from the API).
+      <code>VrmManager</code> is a separate component with identical fetch logic.
+      If both are mounted simultaneously (different pages or layout levels), the API will be called twice,
+      wasting bandwidth and potentially causing state race conditions.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Consolidate to one data-fetching source (the hook in <code>ContextWrapper</code>)
+      and delete <code>VrmManager.ts</code> as a standalone component.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 6. MEMORY LEAKS ══════════════════ -->
+  <h2 class="section" id="sec-memory">6. Memory Leaks</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> Module-Level Mutable State in useSocketChatStore</h3>
+  <div class="finding-card">
+    <div class="desc">
+      Four mutable variables are declared at module level outside the Zustand store in <code>useSocketChatStore.ts</code>:
+    </div>
+    <pre>let healthCheckInterval: ReturnType&lt;typeof setInterval&gt; | null = null;
+let audioBuffer: ArrayBuffer | null = null;
+let textContent = '';
+let audioGeneration = 0;</pre>
+    <div class="desc" style="margin-top:10px;">
+      These variables: (1) are never reset when the store is rehydrated or when tests create a fresh store instance;
+      (2) are invisible to Zustand DevTools; (3) can hold onto large <code>ArrayBuffer</code> objects even after the 
+      conversation ends; (4) make the store impossible to unit-test reliably.
+      The <code>healthCheckInterval</code> reference is particularly dangerous — if <code>connect()</code> is called
+      multiple times rapidly, there is a window where the old interval is not cleared before the new one is set.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Move all of these into the Zustand store state. Use <code>partialize</code> to exclude
+      <code>audioBuffer</code> from persistence (it's binary data). The <code>audioGeneration</code> counter
+      is already a clean pattern — keep it but document it.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Debug Intervals Not Cleaned Up in Model.ts</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>Model.ts</code> has private fields <code>_debugInterval</code> and <code>_lipSyncDebugInterval</code>.
+      The <code>startDebugLogging</code> and <code>enableLipSyncDebug</code> methods set these intervals,
+      but they are commented out in the constructor. If they are ever uncommented or called programmatically,
+      there is no guarantee the intervals are cleared when the VRM model is unloaded (<code>unLoadVrm</code>).
+    </div>
+    <div class="files"><strong>File:</strong> src/components/vrm/Model.ts</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Either remove the debug infrastructure entirely, or ensure <code>unLoadVrm()</code>
+      clears both intervals before disposal.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> AudioContext Not Closed on Component Unmount</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>getAudioContext()</code> in <code>src/lib/audioContext.ts</code> returns a module-level singleton.
+      If the React component tree is unmounted (e.g., during hot module reload or page navigation),
+      the <code>AudioContext</code> is never closed. Browsers limit the number of simultaneously open
+      <code>AudioContext</code> instances (typically 6), which can cause audio failures on subsequent mounts.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Expose a <code>closeAudioContext()</code> function and call it in the appropriate cleanup.
+      Alternatively, use a <code>useEffect</code> cleanup hook that calls <code>ctx.close()</code>.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 7. ARCHITECTURE ══════════════════ -->
+  <h2 class="section page-break" id="sec-architecture">7. Architecture &amp; Design</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> useSocketChatStore Violates Single Responsibility</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>useSocketChatStore.ts</code> (~600+ lines) is a monolithic Zustand store that manages:
+      WebSocket lifecycle, message streaming, audio chunk queuing, audio playback (Web Audio API),
+      VRM lip-sync coordination, animation emotion changes, visualizer nodes, volume control,
+      health-check pings, session persistence, and reconnection logic.
+      This violates the Single Responsibility Principle and makes the file extremely hard to maintain, test, or reason about.
+    </div>
+    <div class="recommendation">
+      <strong>Fix (incremental):</strong> Extract concerns into separate stores or services:
+      <ul style="margin: 8px 0 0 20px;">
+        <li><code>useAudioPlaybackStore</code> — queue, play, volume, Web Audio API nodes</li>
+        <li><code>useWebSocketStore</code> — connection lifecycle, reconnect, health-check</li>
+        <li><code>useChatMessagesStore</code> — messages array, current streaming message</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> localStorage Accessed Directly Inside Zustand Actions</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The WebSocket store directly reads and writes <code>localStorage</code> in multiple places
+      (<code>localStorage.setItem('session_id', ...)</code>, <code>localStorage.getItem('session_id')</code>).
+      This couples the store to the browser environment, makes server-side usage impossible,
+      and makes testing require localStorage mocks.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Abstract localStorage behind a thin service:
+      <pre>// src/lib/services/session-storage.service.ts
+export const sessionStorage = {
+  getSessionId: () => localStorage.getItem('session_id'),
+  setSessionId: (id: string) => localStorage.setItem('session_id', id),
+};</pre>
+      Or use Zustand's built-in <code>persist</code> middleware with a <code>localStorage</code> adapter
+      (already partially done — complete the migration).
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Deprecated audioConstants.ts Still Imported</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>src/lib/audioConstants.ts</code> is explicitly marked <code>@deprecated</code> and re-exports from
+      <code>src/lib/constants/audio.ts</code>. However, if any file still imports from the old path, it carries
+      the overhead of an indirection layer. Deprecated files that are not actively being removed create confusion
+      about which import path is correct.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Search for all imports of <code>audioConstants</code> and migrate them to
+      <code>@/lib/constants</code>. Once all references are updated, delete <code>audioConstants.ts</code>.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 8. REACT ══════════════════ -->
+  <h2 class="section" id="sec-react">8. React Best Practices</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> Missing useEffect Dependencies</h3>
+  <div class="finding-card">
+    <div class="desc">
+      Several <code>useEffect</code> hooks specify incomplete dependency arrays, which means they can
+      run with stale closures or fail to re-run when they should:
+    </div>
+    <table>
+      <tr><th>File</th><th>Issue</th></tr>
+      <tr><td>useAgentInitializer.ts</td><td><code>[fetchUpdateTrigger]</code> — missing <code>fetchAgentById</code>, <code>setIsLoading</code></td></tr>
+      <tr><td>AgentManager.ts</td><td>Same issue</td></tr>
+      <tr><td>useBackgroundInitializer.ts</td><td><code>[fetchUpdateTrigger]</code> — missing store setters</td></tr>
+      <tr><td>useVrmInitializer.ts</td><td><code>[fetchUpdateTrigger]</code> — missing store functions</td></tr>
+    </table>
+    <div class="recommendation">
+      <strong>Fix:</strong> Either add all referenced values to the dependency array,
+      or wrap store functions with <code>useCallback</code> (Zustand already returns stable refs — just add them).
+      Alternatively, use the <code>eslint-plugin-react-hooks</code> exhaustive-deps rule to auto-detect these.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> useVRMStore.getState() Called Outside React Hook Context</h3>
+  <div class="finding-card">
+    <div class="desc">
+      In <code>VrmComponent.tsx</code>, <code>useVRMStore.getState()</code> is called at component render time
+      (not inside a <code>useEffect</code> or event handler):
+      <pre>const {'{ playIdleAnimationById, animationDictionary }'} = useVRMStore.getState();</pre>
+      This bypasses React's reactive subscription system. If the store updates, the component will not re-render
+      to pick up the new values — it will continue using the stale references captured at first render.
+    </div>
+    <div class="files"><strong>File:</strong> src/components/vrm/VrmComponent.tsx</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Use the hook form <code>useVRMStore((state) => state.playIdleAnimationById)</code>
+      so the component subscribes to changes properly.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> agent-chat.tsx Has Excessive State &amp; Re-render Risk</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>agent-chat.tsx</code> maintains 12 separate <code>useState</code> calls and subscribes to 4 different Zustand stores.
+      Several derived boolean values (<code>shouldShowVRM</code>, <code>shouldShowVisualizer</code>, etc.) are computed
+      inline on every render without <code>useMemo</code>, and a <code>containerWidth</code> state update on resize
+      can trigger a re-render of the entire 400-line component tree.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong>
+      <ul style="margin: 8px 0 0 20px;">
+        <li>Wrap derived booleans in <code>useMemo</code></li>
+        <li>Split the component into smaller sub-components (e.g., <code>AvatarSection</code>, <code>ChatSection</code>)</li>
+        <li>Use <code>React.memo</code> on pure sub-components to reduce re-render propagation</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════ 9. API DESIGN ══════════════════ -->
+  <h2 class="section page-break" id="sec-api">9. API Design Consistency</h2>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Unused Parameter in ms-vrm Route</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>GET</code> handler in <code>ms-vrm/route.ts</code> declares <code>request: Request</code>
+      as a parameter but never reads it — no query params, headers, or body are accessed.
+    </div>
+    <div class="files"><strong>File:</strong> src/app/api/agent/ms-vrm/route.ts</div>
+    <pre>// ❌ Current — unused parameter
+export async function GET(request: Request) {</pre>
+    <div class="recommendation">
+      <strong>Fix:</strong> Remove the unused parameter: <code>export async function GET() {'{}'}</code>
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> ms-agent Route Missing Request Rate Limiting</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>/api/agent/ms-agent</code> GET endpoint fetches all agents from the backend and is publicly accessible.
+      Without any rate limiting, it can be abused to scrape agent data or cause excessive load on the backend.
+      The <code>chat-os/generate</code> endpoint forwards to an expensive LLM API with no rate limiting either.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Implement rate limiting using the Cloudflare Workers rate limiting API (the app uses
+      <code>@opennextjs/cloudflare</code>) or an edge middleware approach. At minimum, add a
+      <code>Cache-Control</code> header to the agents list endpoint so CDN caches can absorb repeated reads.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill low">Low</span> Places Route Interface Defined in Route File</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>PlaceResult</code> interface is exported from the API route file (<code>places/route.ts</code>).
+      API route files should not export business-logic types — this creates an unusual import path
+      and couples type definitions to the routing layer.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Move <code>PlaceResult</code> to <code>src/types/common.ts</code> or a new
+      <code>src/types/places.ts</code>.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 10. DEPENDENCIES ══════════════════ -->
+  <h2 class="section" id="sec-deps">10. Dependency Hygiene</h2>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Development Tools Listed as Runtime Dependencies</h3>
+  <div class="finding-card">
+    <div class="desc">
+      Several packages that are only needed during development or build time are listed under
+      <code>dependencies</code> instead of <code>devDependencies</code>. This inflates the production Docker/serverless image
+      and signals incorrect project configuration.
+    </div>
+    <table>
+      <tr><th>Package</th><th>Should Be</th><th>Reason</th></tr>
+      <tr><td><code>vercel</code></td><td>devDependency</td><td>CLI tool, not needed at runtime</td></tr>
+      <tr><td><code>ts-node</code></td><td>devDependency</td><td>TypeScript executor for scripts only</td></tr>
+      <tr><td><code>@babel/core</code></td><td>devDependency</td><td>Transpiler — used at build time</td></tr>
+      <tr><td><code>pino-pretty</code></td><td>devDependency</td><td>Log formatter for local dev</td></tr>
+      <tr><td><code>r3f-perf</code></td><td>devDependency</td><td>Performance overlay for Three.js dev</td></tr>
+    </table>
+    <div class="recommendation">
+      <strong>Fix:</strong> Move these to <code>devDependencies</code> in <code>package.json</code>.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> axios Dependency Mostly Redundant</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>axios</code> (~14 KB gzipped) is imported in only one API route file (<code>ms-agent/route.ts</code>),
+      where it could be replaced with native <code>fetch</code>. All other API routes use native <code>fetch</code>.
+      The edge runtime already has native <code>fetch</code> available. Removing axios would reduce
+      the server-side bundle and eliminate one dependency to maintain.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Replace the <code>axios.post</code> call in <code>ms-agent/route.ts</code> with native
+      <code>fetch</code>, then remove <code>axios</code> from <code>package.json</code>.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill low">Low</span> Next.js 14 — Consider Upgrading to Next.js 15</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The project uses <code>next@14.2.26</code>. Next.js 15 brings significant improvements:
+      faster Turbopack dev builds, improved React Server Components, better caching defaults
+      (opt-in instead of default), and important security patches. Given the project already uses
+      <code>@opennextjs/cloudflare</code> which supports Next.js 15, the upgrade path is well-supported.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Run <code>npx @next/codemod@latest upgrade</code> to get automated migration assistance.
+      Test thoroughly, especially the Suspense boundaries and API route caching behaviour changes.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 11. DEAD CODE ══════════════════ -->
+  <h2 class="section page-break" id="sec-deadcode">11. Dead &amp; Commented Code</h2>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Large Block of Commented-Out Code in ms-bg/route.ts</h3>
+  <div class="finding-card">
+    <div class="desc">
+      <code>ms-bg/route.ts</code> contains ~60 lines of commented-out code representing an alternative
+      proxy implementation. This dead code clutters the file, makes git diffs noisy, and confuses developers
+      about which implementation is active.
+    </div>
+    <div class="files"><strong>File:</strong> src/app/api/agent/ms-bg/route.ts · Lines 30–90</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Delete the commented block. If the alternative implementation is needed in the future,
+      it can be retrieved from git history.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill medium">Medium</span> Unimplemented Store Actions Documented as "Not Fully Implemented"</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>SocketChatState</code> interface documents <code>joinStream</code> and <code>leaveStream</code>
+      as "not fully implemented". These stubs add noise to the public API surface of the store and can mislead
+      developers who try to call them expecting functionality.
+    </div>
+    <div class="files"><strong>File:</strong> src/store/useSocketChatStore.ts · interface docs</div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Either implement them fully or remove them from the interface until they are ready.
+      If they're placeholders for future work, track them in an issue rather than in source code.
+    </div>
+  </div>
+
+  <h3 class="finding"><span class="pill low">Low</span> Commented-Out Debug Code in Model.ts</h3>
+  <div class="finding-card">
+    <div class="desc">
+      The <code>Model</code> constructor contains commented-out debug calls:
+      <pre>// this.startDebugLogging();
+// this.enableLipSyncDebug(true);</pre>
+      Additionally, <code>_animationStateLog: string[]</code> accumulates strings but its consumer is commented out.
+    </div>
+    <div class="recommendation">
+      <strong>Fix:</strong> Use the environment-flag debug pattern shown in the Performance section.
+      Remove commented-out lines; enable debug features via <code>NEXT_PUBLIC_DEBUG_VRM=true</code>.
+    </div>
+  </div>
+
+  <!-- ══════════════════ 12. TESTING ══════════════════ -->
+  <h2 class="section" id="sec-testing">12. Testing</h2>
+
+  <h3 class="finding"><span class="pill high">High</span> Zero Tests in the Codebase</h3>
+  <div class="finding-card">
+    <div class="desc">
+      No test files (*.test.ts, *.test.tsx, *.spec.ts, *.spec.tsx) were found anywhere in the project.
+      There is no testing framework configured (no Jest, Vitest, Playwright, or Cypress setup).
+      This means:
+      <ul style="margin: 8px 0 0 20px;">
+        <li>Regressions in critical paths (WebSocket handling, audio playback, VRM animation) go undetected until production</li>
+        <li>Refactoring is high-risk with no safety net</li>
+        <li>The complex parsing logic in <code>chat-utils.ts</code> and <code>parse-response.ts</code> is unverified</li>
+        <li>API route validation logic cannot be tested without spinning up the full server</li>
+      </ul>
+    </div>
+    <div class="recommendation">
+      <strong>Fix (prioritised by ROI):</strong>
+      <ol style="margin: 8px 0 0 20px;">
+        <li><strong>Unit tests for pure utilities</strong> — <code>parseSocketResponse</code>, <code>mapFacialEmotionToVRM</code>,
+            <code>parseMessageContent</code>, <code>extractGoogleMapsPlaceName</code>. These are pure functions with no dependencies.
+            Use Vitest (zero config with Next.js).</li>
+        <li><strong>API route tests</strong> — Test input validation, error shapes, and auth header logic.
+            Use <code>next-test-api-route-handler</code> or the new <code>experimental_msw</code> support.</li>
+        <li><strong>Integration tests for stores</strong> — Test Zustand store actions (connect, disconnect, sendMessage)
+            with a mocked WebSocket.</li>
+        <li><strong>E2E smoke tests</strong> — Use Playwright to verify the chat flow loads and can send a message.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ══════════════════ PRIORITY MATRIX ══════════════════ -->
+  <h2 class="section page-break">Priority Matrix</h2>
+  <p style="color: var(--muted); margin-bottom: 16px;">Ordered by impact vs effort. Address items in the top section first.</p>
+
+  <table>
+    <tr>
+      <th>#</th>
+      <th>Issue</th>
+      <th>Severity</th>
+      <th>Effort</th>
+      <th>Impact</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>Remove admin secret from client-side fetch calls</td>
+      <td><span class="pill critical">Critical</span></td>
+      <td>Low (delete 3 lines)</td>
+      <td>Security</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Fix empty Bearer token in getMetadata.ts</td>
+      <td><span class="pill critical">Critical</span></td>
+      <td>Low (1 line)</td>
+      <td>Security / SEO</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Restrict CORS and X-Frame-Options to embed route only</td>
+      <td><span class="pill critical">Critical</span></td>
+      <td>Low (config change)</td>
+      <td>Security</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Fix persist() to exclude non-serializable objects</td>
+      <td><span class="pill high">High</span></td>
+      <td>Low (add partialize)</td>
+      <td>Stability</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Enable @typescript-eslint/no-unused-vars</td>
+      <td><span class="pill high">High</span></td>
+      <td>Medium (fix all violations)</td>
+      <td>Code Quality</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>Delete AgentManager.ts duplicate, use hook</td>
+      <td><span class="pill high">High</span></td>
+      <td>Low (delete file)</td>
+      <td>Maintainability</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>Delete VrmManager.ts, consolidate into hook</td>
+      <td><span class="pill high">High</span></td>
+      <td>Low-Medium</td>
+      <td>Maintainability</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>Add input validation to chat-os/generate</td>
+      <td><span class="pill high">High</span></td>
+      <td>Low</td>
+      <td>Security / Cost</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td>Move module-level state into Zustand store</td>
+      <td><span class="pill high">High</span></td>
+      <td>Medium</td>
+      <td>Reliability</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>Add LRU cache eviction for VRM model cache</td>
+      <td><span class="pill high">High</span></td>
+      <td>Medium</td>
+      <td>Performance / Stability</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td>Add unit tests (start with pure utilities)</td>
+      <td><span class="pill high">High</span></td>
+      <td>High (ongoing)</td>
+      <td>Quality / Safety</td>
+    </tr>
+    <tr>
+      <td>12</td>
+      <td>Fix IAgent | null type in AgentStoreState</td>
+      <td><span class="pill medium">Medium</span></td>
+      <td>Low</td>
+      <td>Type Safety</td>
+    </tr>
+    <tr>
+      <td>13</td>
+      <td>Standardise API response shape across all routes</td>
+      <td><span class="pill medium">Medium</span></td>
+      <td>Medium</td>
+      <td>DX / Client stability</td>
+    </tr>
+    <tr>
+      <td>14</td>
+      <td>Debounce container resize listener</td>
+      <td><span class="pill medium">Medium</span></td>
+      <td>Low</td>
+      <td>Performance</td>
+    </tr>
+    <tr>
+      <td>15</td>
+      <td>Gate console.log behind debug flag in Model.ts</td>
+      <td><span class="pill medium">Medium</span></td>
+      <td>Low</td>
+      <td>Performance</td>
+    </tr>
+    <tr>
+      <td>16</td>
+      <td>Replace axios with fetch in ms-agent/route.ts</td>
+      <td><span class="pill medium">Medium</span></td>
+      <td>Low</td>
+      <td>Bundle size</td>
+    </tr>
+    <tr>
+      <td>17</td>
+      <td>Move build tools to devDependencies</td>
+      <td><span class="pill medium">Medium</span></td>
+      <td>Low</td>
+      <td>Deploy size</td>
+    </tr>
+    <tr>
+      <td>18</td>
+      <td>Move GA ID to NEXT_PUBLIC_GA_ID env var</td>
+      <td><span class="pill low">Low</span></td>
+      <td>Low</td>
+      <td>Config hygiene</td>
+    </tr>
+    <tr>
+      <td>19</td>
+      <td>Delete commented code in ms-bg/route.ts and Model.ts</td>
+      <td><span class="pill low">Low</span></td>
+      <td>Low</td>
+      <td>Readability</td>
+    </tr>
+    <tr>
+      <td>20</td>
+      <td>Upgrade to Next.js 15</td>
+      <td><span class="pill low">Low</span></td>
+      <td>High (testing required)</td>
+      <td>Long-term</td>
+    </tr>
+  </table>
+
+  <!-- Footer -->
+  <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; text-align: center;">
+    Alias Agent Prototype — Codebase Improvement Report · Generated 14 May 2026 · 60+ files analysed
+  </div>
+
+</div>
+</body>
+</html>
