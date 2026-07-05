@@ -1,0 +1,351 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* Theme colors - Light mode defaults */
+    --color-primary: #FFFFFFCC;
+    --color-alias: #10C79F;
+    --color-foreground: #000000;
+    --color-background-start: #F8F8F400;
+    --color-background-end: #F8F8F4;
+    
+    /* Background colors */
+    --color-background: #F5F5F5;
+    --color-backgroundSecondary: #09090999
+    
+    /* Border colors */
+    --color-border: #F8F8F400;
+    --color-borderSecondary: rgba(0, 0, 0, 0.05);
+    
+    /* Muted colors */
+    --color-muted: rgba(0, 0, 0, 0.4);
+    --color-mutedForeground: #6b7280;
+    
+    /* Accent colors */
+    --color-accent: #3BE2BE;
+    --color-accentForeground: #ffffff;
+    
+    /* Destructive colors */
+    --color-destructive: #ef4444;
+    --color-destructiveForeground: #ffffff;
+    
+    /* Success colors */
+    --color-success: #10b981;
+    --color-successForeground: #ffffff;
+    
+    /* Warning colors */
+    --color-warning: #f59e0b;
+    --color-warningForeground: #ffffff;
+    
+    /* Info colors */
+    --color-info: #3b82f6;
+    --color-infoForeground: #ffffff;
+    
+    /* Privy theme */
+    --privy-color-background: #F4F4F4;
+    --privy-color-background-2: rgba(0, 0, 0, 0.2);
+    --privy-color-accent-light: #3be2be;
+    --privy-color-accent: #3be2be;
+    --privy-color-foreground: #000000;
+    --privy-color-foreground-1: #000000;
+    --privy-color-foreground-2: #374151;
+    --privy-color-foreground-4: #3BE2BE;
+    --privy-color-accent-dark: rgba(59, 226, 190, 0.1);
+    --privy-border-radius-lg: 8px;
+    --privy-border-radius-mdlg: 8px;
+}
+
+/* Dark mode overrides */
+.dark {
+    --color-primary: #0B0B0B;
+    --color-foreground: #FFFFFF;
+    --color-background-start: #F8F8F400;
+    --color-background-end: #F8F8F4;
+    
+    /* Background colors */
+    --color-background: #F5F5F5;
+    --color-backgroundSecondary: #FFFFFF05;
+    
+    /* Border colors */
+    --color-border: #F8F8F400;
+    --color-borderSecondary: #F8F8F400;
+    
+    /* Muted colors */
+    --color-muted: rgba(255, 255, 255, 0.4);
+    --color-mutedForeground: #9ca3af;
+    
+    /* Accent colors */
+    --color-accentForeground: #0c0c0c;
+    
+    /* Privy theme */
+    --privy-color-background: #0B0B0B;
+    --privy-color-background-2: rgba(255, 255, 255, 0.2);
+    --privy-color-foreground: #ffffff;
+    --privy-color-foreground-1: #ffffff;
+    --privy-color-foreground-2: #e5e7eb;
+    --privy-color-accent-dark: rgba(59, 226, 190, 0.2);
+}
+
+html, body {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+body {
+    color: var(--color-foreground);
+}
+
+/* Prevent zooming on input focus */
+input, textarea, select {
+    font-size: 14px !important;
+}
+
+/* Global scrollbar styles */
+* {
+    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+}
+
+@media screen and (max-width: 768px) {
+    input:focus, textarea:focus, select:focus {
+        font-size: 16px !important;
+    }
+}
+
+/* Custom scrollbar where needed */
+.custom-scroll {
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+    scrollbar-color: #FFFFFF0D #FFFFFF0D !important;
+}
+
+.custom-scroll::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    display: block;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+    background: #FFFFFF0D;
+    border-radius: 40px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #FFFFFF0D;
+    border-radius: 40px;
+    cursor: pointer;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #FFFFFF0D;
+}
+
+@layer base {
+    * {
+        scroll-behavior: smooth;
+    }
+
+    h1 {
+        @apply font-geist  text-xl font-semibold ;
+    }
+
+    h2 {
+        @apply font-geist  text-base font-semibold ;
+    }
+
+    h3 {
+        @apply font-geist  text-sm font-semibold ;
+    }
+
+    h4 {
+        @apply font-geist  text-xs font-semibold ;
+    }
+
+    p {
+        @apply font-geist text-sm leading-[140%]   font-medium ;
+    }
+
+    p + p {
+        @apply mt-4;
+    }
+
+    ul {
+        @apply list-none pl-6 my-2; /* Remove default bullets and add padding */
+    }
+
+    li {
+        @apply relative font-geist text-sm leading-[140%] mt-1;
+    }
+
+
+
+    li ul > li {
+        @apply mt-0;
+    }
+
+    blockquote {
+        @apply border-l-2 pl-6 italic;
+    }
+
+    tr {
+        @apply even:bg-muted m-0 border-t p-0;
+    }
+
+    th {
+        @apply border px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right;
+    }
+
+    td {
+        @apply border px-4 py-2 text-left [&[align=center]]:text-center [&[align=right]]:text-right;
+    }
+
+    code {
+        @apply bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold;
+    }
+
+    small {
+        @apply text-xs leading-none font-light;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+canvas {
+    opacity: 1;
+    touch-action: none;
+}
+
+@media (max-height: 680px) {
+    .small-devices-auto_height {
+        height: calc(100dvh - 100px);
+    }
+}
+
+/* iOS-specific keyboard fixes */
+@supports (-webkit-touch-callout: none) {
+    /* iOS Safari specific styles */
+    html, body {
+        height: 100%;
+        height: 100dvh;
+        overflow-x: hidden;
+    }
+    
+    /* Prevent iOS Safari from adding extra space when keyboard closes */
+    .ios-keyboard-fix {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+    
+    /* Fix for iOS keyboard spacing issues - allow scrolling */
+    @media screen and (max-width: 768px) {
+        body {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        /* Ensure proper viewport handling on iOS while allowing scroll */
+        .ios-viewport-fix {
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        /* Ensure chat containers can scroll properly on iOS */
+        .ios-keyboard-fix {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+}
+
+.swiper-wrapper {
+    padding-bottom: 16px;
+    max-width: 100%;
+}
+
+/* Typography */
+.h3 {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.canvas-container:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas-container:fullscreen canvas {
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+p.body-1 {
+    font-size: 16px;
+}
+
+p.body-2 {
+    font-size: 14px;
+}
+
+p.body-3 {
+    font-size: 12px;
+}
+
+.button-text-md {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.button-text-sm {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.blur {
+    filter: blur(120px);
+}
+
+/* Sound wave animation for mic modal */
+@keyframes soundWave {
+    0% { height: 4px; }
+    50% { height: 24px; }
+    100% { height: 4px; }
+}
+
+.animate-sound-wave {
+    animation: soundWave 1s ease-in-out infinite;
+}
+
+.pinned-message-link a {
+    @apply underline ;
+}
